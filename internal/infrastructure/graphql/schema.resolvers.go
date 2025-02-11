@@ -7,28 +7,64 @@ package graphql
 import (
 	"context"
 	"fmt"
+	"strconv"
 
 	"github.com/VladimirMovsesyan/forum/internal/domain/model"
 )
 
 // CreatePost is the resolver for the createPost field.
 func (r *mutationResolver) CreatePost(ctx context.Context, title string, content string, author string, allowComments *bool) (*model.Post, error) {
-	panic(fmt.Errorf("not implemented: CreatePost - createPost"))
+	post, err := r.storage.CreatePost(ctx, model.Post{
+		Title:         title,
+		Content:       content,
+		Author:        author,
+		AllowComments: *allowComments,
+	})
+	if err != nil {
+		return nil, err
+	}
+
+	return post, nil
 }
 
 // CreateComment is the resolver for the createComment field.
 func (r *mutationResolver) CreateComment(ctx context.Context, postID string, parentID *string, content string, author string) (*model.Comment, error) {
-	panic(fmt.Errorf("not implemented: CreateComment - createComment"))
+	comment, err := r.storage.CreateComment(ctx, model.Comment{
+		PostID:   postID,
+		ParentID: parentID,
+		Content:  content,
+		Author:   author,
+	})
+	if err != nil {
+		return nil, err
+	}
+
+	return comment, nil
 }
 
 // Posts is the resolver for the posts field.
 func (r *queryResolver) Posts(ctx context.Context) ([]*model.Post, error) {
-	panic(fmt.Errorf("not implemented: Posts - posts"))
+	posts, err := r.storage.Posts(ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	return posts, nil
 }
 
 // Post is the resolver for the post field.
 func (r *queryResolver) Post(ctx context.Context, id string) (*model.Post, error) {
-	panic(fmt.Errorf("not implemented: Post - post"))
+	postID, err := strconv.Atoi(id)
+	if err != nil {
+		return nil, err
+	}
+
+	post, err := r.storage.Post(ctx, postID)
+	if err != nil {
+		return nil, err
+	}
+
+	return post, nil
 }
 
 // NewComment is the resolver for the newComment field.

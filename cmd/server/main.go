@@ -1,12 +1,15 @@
 package main
 
 import (
+	"context"
 	"github.com/99designs/gqlgen/graphql/handler"
 	"github.com/99designs/gqlgen/graphql/handler/extension"
 	"github.com/99designs/gqlgen/graphql/handler/lru"
 	"github.com/99designs/gqlgen/graphql/handler/transport"
 	"github.com/99designs/gqlgen/graphql/playground"
 	"github.com/VladimirMovsesyan/forum/internal/infrastructure/graphql"
+	"github.com/VladimirMovsesyan/forum/internal/infrastructure/storage"
+	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/vektah/gqlparser/v2/ast"
 	"log"
 	"net/http"
@@ -21,7 +24,21 @@ func main() {
 		port = defaultPort
 	}
 
-	srv := handler.New(graphql.NewExecutableSchema(graphql.Config{Resolvers: &graphql.Resolver{}}))
+	conn, err := pgxpool.New(context.Background(), "")
+	if err != nil {
+		log.Println(err)
+		return
+	}
+
+	s, err := storage.NewPostgres(conn)
+	if err != nil {
+		log.Println(err)
+		return
+	}
+
+	resolver := graphql.NewResolver(s)
+
+	srv := handler.New(graphql.NewExecutableSchema(graphql.Config{Resolvers: &resolver}))
 
 	srv.AddTransport(transport.Options{})
 	srv.AddTransport(transport.GET{})
