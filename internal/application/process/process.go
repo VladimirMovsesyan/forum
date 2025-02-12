@@ -4,6 +4,8 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"github.com/VladimirMovsesyan/forum/internal/domain/model"
+	"github.com/jackc/pgx/v5/pgxpool"
 	"log"
 	"net/http"
 	"os"
@@ -16,7 +18,6 @@ import (
 	"github.com/99designs/gqlgen/graphql/handler/lru"
 	"github.com/99designs/gqlgen/graphql/handler/transport"
 	"github.com/99designs/gqlgen/graphql/playground"
-	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/vektah/gqlparser/v2/ast"
 
 	"github.com/VladimirMovsesyan/forum/internal/domain/pubsub"
@@ -36,15 +37,30 @@ func New(port, dbDSN string) *Process {
 	}
 }
 
-func (p *Process) Run() error {
-	conn, err := pgxpool.New(context.Background(), p.dbDSN)
-	if err != nil {
-		return err
-	}
+type repository interface {
+	CreatePost(ctx context.Context, post *model.Post) (*model.Post, error)
+	Post(ctx context.Context, id int) (*model.Post, error)
+	Posts(ctx context.Context) ([]*model.Post, error)
 
-	s, err := storage.NewPostgres(conn)
-	if err != nil {
-		return err
+	CreateComment(ctx context.Context, comment *model.Comment) (*model.Comment, error)
+	Comments(ctx context.Context, postID int) ([]*model.Comment, error)
+}
+
+func (p *Process) Run() error {
+	var s repository
+
+	s = storage.NewInMemory()
+
+	if p.dbDSN != "" {
+		conn, err := pgxpool.New(context.Background(), p.dbDSN)
+		if err != nil {
+			return err
+		}
+
+		s, err = storage.NewPostgres(conn)
+		if err != nil {
+			return err
+		}
 	}
 
 	ps := pubsub.NewPubSub()
