@@ -7,18 +7,17 @@ package graphql
 import (
 	"context"
 	"fmt"
-	"strconv"
 
 	"github.com/VladimirMovsesyan/forum/internal/domain/model"
 )
 
 // CreatePost is the resolver for the createPost field.
-func (r *mutationResolver) CreatePost(ctx context.Context, title string, content string, author string, allowComments *bool) (*model.Post, error) {
+func (r *mutationResolver) CreatePost(ctx context.Context, input model.NewPost) (*model.Post, error) {
 	post, err := r.storage.CreatePost(ctx, model.Post{
-		Title:         title,
-		Content:       content,
-		Author:        author,
-		AllowComments: *allowComments,
+		Title:         input.Title,
+		Content:       input.Content,
+		Author:        input.Author,
+		AllowComments: *input.AllowComments,
 	})
 	if err != nil {
 		return nil, err
@@ -28,12 +27,21 @@ func (r *mutationResolver) CreatePost(ctx context.Context, title string, content
 }
 
 // CreateComment is the resolver for the createComment field.
-func (r *mutationResolver) CreateComment(ctx context.Context, postID string, parentID *string, content string, author string) (*model.Comment, error) {
+func (r *mutationResolver) CreateComment(ctx context.Context, input model.NewComment) (*model.Comment, error) {
+	post, err := r.storage.Post(ctx, int(input.PostID))
+	if err != nil {
+		return nil, err
+	}
+
+	if !post.AllowComments {
+		return nil, fmt.Errorf("creating comments under this post not allowed")
+	}
+
 	comment, err := r.storage.CreateComment(ctx, model.Comment{
-		PostID:   postID,
-		ParentID: parentID,
-		Content:  content,
-		Author:   author,
+		PostID:   input.PostID,
+		ParentID: input.ParentID,
+		Content:  input.Content,
+		Author:   input.Author,
 	})
 	if err != nil {
 		return nil, err
@@ -53,13 +61,8 @@ func (r *queryResolver) Posts(ctx context.Context) ([]*model.Post, error) {
 }
 
 // Post is the resolver for the post field.
-func (r *queryResolver) Post(ctx context.Context, id string) (*model.Post, error) {
-	postID, err := strconv.Atoi(id)
-	if err != nil {
-		return nil, err
-	}
-
-	post, err := r.storage.Post(ctx, postID)
+func (r *queryResolver) Post(ctx context.Context, id int32) (*model.Post, error) {
+	post, err := r.storage.Post(ctx, int(id))
 	if err != nil {
 		return nil, err
 	}
@@ -68,7 +71,7 @@ func (r *queryResolver) Post(ctx context.Context, id string) (*model.Post, error
 }
 
 // NewComment is the resolver for the newComment field.
-func (r *subscriptionResolver) NewComment(ctx context.Context, postID string) (<-chan *model.Comment, error) {
+func (r *subscriptionResolver) NewComment(ctx context.Context, postID int32) (<-chan *model.Comment, error) {
 	panic(fmt.Errorf("not implemented: NewComment - newComment"))
 }
 

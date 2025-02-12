@@ -5,7 +5,6 @@ import (
 	"github.com/VladimirMovsesyan/forum/internal/domain/model"
 	"github.com/jackc/pgx/v5/pgxpool"
 	"log"
-	"strconv"
 )
 
 type repository interface {
@@ -82,7 +81,7 @@ func (p *postgresStorage) CreatePost(ctx context.Context, post model.Post) (*mod
 	}
 
 	return &model.Post{
-		ID:            strconv.Itoa(id),
+		ID:            int32(id),
 		Title:         post.Title,
 		Content:       post.Content,
 		Author:        post.Author,
@@ -124,12 +123,7 @@ func (p *postgresStorage) Posts(ctx context.Context) ([]*model.Post, error) {
 			log.Println(err)
 		}
 
-		id, err := strconv.Atoi(post.ID)
-		if err != nil {
-			return nil, err
-		}
-
-		post.Comments, err = p.Comments(ctx, id)
+		post.Comments, err = p.Comments(ctx, int(post.ID))
 
 		posts = append(posts, post)
 	}
@@ -151,7 +145,7 @@ func (p *postgresStorage) CreateComment(ctx context.Context, comment model.Comme
 	}
 
 	return &model.Comment{
-		ID:       strconv.Itoa(id),
+		ID:       int32(id),
 		PostID:   comment.PostID,
 		ParentID: comment.ParentID,
 		Content:  comment.Content,

@@ -1,5 +1,5 @@
 type Post {
-    id: ID!
+    id: Int!
     title: String!
     content: String!
     author: String!
@@ -8,9 +8,9 @@ type Post {
 }
 
 type Comment {
-    id: ID!
-    postId: ID!
-    parentId: ID
+    id: Int!
+    postId: Int!
+    parentId: Int
     content: String!
     author: String!
     children(first: Int, after: String): [Comment!]!
@@ -18,14 +18,28 @@ type Comment {
 
 type Query {
     posts: [Post!]!
-    post(id: ID!): Post
+    post(id: Int!): Post
+}
+
+input NewPost {
+    title: String!
+    content: String!
+    author: String!
+    allowComments: Boolean
+}
+
+input NewComment {
+    postId: Int!
+    parentId: Int
+    content: String!
+    author: String!
 }
 
 type Mutation {
-    createPost(title: String!, content: String!, author: String!, allowComments: Boolean): Post!
-    createComment(postId: ID!, parentId: ID, content: String!, author: String!): Comment!
+    createPost(input: NewPost!): Post!
+    createComment(input: NewComment!): Comment!
 }
 
 type Subscription {
-    newComment(postId: ID!): Comment!
+    newComment(postId: Int!): Comment!
 }
