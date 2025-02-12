@@ -7,7 +7,6 @@ package graphql
 import (
 	"context"
 	"fmt"
-
 	"github.com/VladimirMovsesyan/forum/internal/domain/model"
 )
 
@@ -26,8 +25,14 @@ func (r *mutationResolver) CreatePost(ctx context.Context, input model.NewPost) 
 	return post, nil
 }
 
+const maxCommentLength = 2000
+
 // CreateComment is the resolver for the createComment field.
 func (r *mutationResolver) CreateComment(ctx context.Context, input model.NewComment) (*model.Comment, error) {
+	if len(input.Content) > maxCommentLength {
+		return nil, fmt.Errorf("content exceeds max length of %d", maxCommentLength)
+	}
+
 	post, err := r.storage.Post(ctx, int(input.PostID))
 	if err != nil {
 		return nil, err
@@ -46,6 +51,8 @@ func (r *mutationResolver) CreateComment(ctx context.Context, input model.NewCom
 	if err != nil {
 		return nil, err
 	}
+
+	r.ps.Publish(input.PostID, comment)
 
 	return comment, nil
 }
@@ -72,7 +79,14 @@ func (r *queryResolver) Post(ctx context.Context, id int32) (*model.Post, error)
 
 // NewComment is the resolver for the newComment field.
 func (r *subscriptionResolver) NewComment(ctx context.Context, postID int32) (<-chan *model.Comment, error) {
-	panic(fmt.Errorf("not implemented: NewComment - newComment"))
+	ch := r.ps.Subscribe(postID)
+
+	go func() {
+		<-ctx.Done()
+		r.ps.Unsubscribe(postID, ch)
+	}()
+
+	return ch, nil
 }
 
 // Mutation returns MutationResolver implementation.

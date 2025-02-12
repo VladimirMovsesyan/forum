@@ -3,6 +3,7 @@ package graphql
 import (
 	"context"
 	"github.com/VladimirMovsesyan/forum/internal/domain/model"
+	"github.com/VladimirMovsesyan/forum/internal/domain/pubsub"
 )
 
 // This file will not be regenerated automatically.
@@ -19,10 +20,12 @@ type repository interface {
 }
 type Resolver struct {
 	storage repository
+	ps      *pubsub.PubSub
 }
 
-func NewResolver(storage repository) Resolver {
+func NewResolver(storage repository, ps *pubsub.PubSub) Resolver {
 	return Resolver{
 		storage: storage,
+		ps:      ps,
 	}
 }
