@@ -3,6 +3,7 @@ package process
 import (
 	"context"
 	"errors"
+	"fmt"
 	"github.com/99designs/gqlgen/graphql/handler"
 	"github.com/99designs/gqlgen/graphql/handler/extension"
 	"github.com/99designs/gqlgen/graphql/handler/lru"
@@ -15,6 +16,9 @@ import (
 	"github.com/vektah/gqlparser/v2/ast"
 	"log"
 	"net/http"
+	"os"
+	"os/signal"
+	"syscall"
 	"time"
 )
 
@@ -45,30 +49,48 @@ func (p *Process) Run() error {
 
 	resolver := graphql.NewResolver(s, ps)
 
-	srv := handler.New(graphql.NewExecutableSchema(graphql.Config{Resolvers: &resolver}))
+	srv := http.Server{
+		Addr: fmt.Sprintf(":%s", p.port),
+	}
 
-	srv.AddTransport(transport.Options{})
-	srv.AddTransport(transport.GET{})
-	srv.AddTransport(transport.POST{})
-	srv.AddTransport(transport.Websocket{
+	queryHandler := handler.New(graphql.NewExecutableSchema(graphql.Config{Resolvers: &resolver}))
+
+	queryHandler.AddTransport(transport.Options{})
+	queryHandler.AddTransport(transport.GET{})
+	queryHandler.AddTransport(transport.POST{})
+	queryHandler.AddTransport(transport.Websocket{
 		KeepAlivePingInterval: 10 * time.Second,
 	})
 
-	srv.SetQueryCache(lru.New[*ast.QueryDocument](1000))
+	queryHandler.SetQueryCache(lru.New[*ast.QueryDocument](1000))
 
-	srv.Use(extension.Introspection{})
-	srv.Use(extension.AutomaticPersistedQuery{
+	queryHandler.Use(extension.Introspection{})
+	queryHandler.Use(extension.AutomaticPersistedQuery{
 		Cache: lru.New[string](100),
 	})
 
 	http.Handle("/", playground.Handler("GraphQL playground", "/query"))
-	http.Handle("/query", srv)
+	http.Handle("/query", queryHandler)
 
 	log.Printf("connect to http://localhost:%s/ for GraphQL playground\n", p.port)
 
-	if err := http.ListenAndServe(":"+p.port, nil); errors.Is(err, http.ErrServerClosed) {
+	signals := make(chan os.Signal, 1)
+	signal.Notify(signals, syscall.SIGINT, syscall.SIGTERM, syscall.SIGQUIT, syscall.SIGKILL)
+
+	go func() {
+		sig := <-signals
+		log.Println("Got signal:", sig)
+		err := srv.Shutdown(context.Background())
+		if err != nil {
+			log.Println(err)
+		}
+	}()
+
+	if err := srv.ListenAndServe(); !errors.Is(err, http.ErrServerClosed) {
 		return err
 	}
+
+	log.Println("Server gracefully stopped")
 
 	return nil
 }
