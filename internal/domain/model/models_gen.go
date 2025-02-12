@@ -3,12 +3,13 @@
 package model
 
 type Comment struct {
-	ID       int32      `json:"id"`
-	PostID   int32      `json:"postId"`
-	ParentID *int32     `json:"parentId,omitempty"`
-	Content  string     `json:"content"`
-	Author   string     `json:"author"`
-	Children []*Comment `json:"children"`
+	ID        int32      `json:"id"`
+	PostID    int32      `json:"postId"`
+	ParentID  *int32     `json:"parentId,omitempty"`
+	Content   string     `json:"content"`
+	Author    string     `json:"author"`
+	CreatedAt string     `json:"createdAt"`
+	Children  []*Comment `json:"children"`
 }
 
 type Mutation struct {
@@ -34,6 +35,7 @@ type Post struct {
 	Content       string     `json:"content"`
 	Author        string     `json:"author"`
 	AllowComments bool       `json:"allowComments"`
+	CreatedAt     string     `json:"createdAt"`
 	Comments      []*Comment `json:"comments"`
 }
 

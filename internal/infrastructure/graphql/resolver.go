@@ -18,6 +18,9 @@ type repository interface {
 	CreateComment(ctx context.Context, comment model.Comment) (*model.Comment, error)
 	Comments(ctx context.Context, postID int) ([]*model.Comment, error)
 }
+
+const maxCommentLength = 2000
+
 type Resolver struct {
 	storage repository
 	ps      *pubsub.PubSub

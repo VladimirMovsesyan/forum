@@ -4,6 +4,7 @@ type Post {
     content: String!
     author: String!
     allowComments: Boolean!
+    createdAt: String!
     comments(first: Int, after: String): [Comment!]!
 }
 
@@ -13,6 +14,7 @@ type Comment {
     parentId: Int
     content: String!
     author: String!
+    createdAt: String!
     children(first: Int, after: String): [Comment!]!
 }
 

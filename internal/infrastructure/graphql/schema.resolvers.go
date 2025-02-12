@@ -25,8 +25,6 @@ func (r *mutationResolver) CreatePost(ctx context.Context, input model.NewPost) 
 	return post, nil
 }
 
-const maxCommentLength = 2000
-
 // CreateComment is the resolver for the createComment field.
 func (r *mutationResolver) CreateComment(ctx context.Context, input model.NewComment) (*model.Comment, error) {
 	if len(input.Content) > maxCommentLength {
