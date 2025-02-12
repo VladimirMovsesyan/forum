@@ -1,10 +1,13 @@
-package utils
+package utils_test
 
 import (
-	"github.com/VladimirMovsesyan/forum/internal/domain/model"
-	"github.com/stretchr/testify/require"
 	"testing"
 	"time"
+
+	"github.com/stretchr/testify/require"
+
+	"github.com/VladimirMovsesyan/forum/internal/domain/model"
+	"github.com/VladimirMovsesyan/forum/internal/domain/utils"
 )
 
 func getReferer(x int32) *int32 {
@@ -191,7 +194,7 @@ func TestBuildCommentTree(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			got := BuildCommentTree(tt.flatComments)
+			got := utils.BuildCommentTree(tt.flatComments)
 			require.Equal(t, len(tt.want), len(got))
 
 			for k, v := range got {

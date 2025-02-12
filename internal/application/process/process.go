@@ -50,6 +50,7 @@ type repository interface {
 
 func (p *Process) Run() error {
 	log.Println("Configuring service...")
+
 	var s repository
 
 	s = storage.NewInMemory()
