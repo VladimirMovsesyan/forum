@@ -2,23 +2,14 @@ package storage
 
 import (
 	"context"
-	"github.com/VladimirMovsesyan/forum/internal/domain/model"
-	"github.com/VladimirMovsesyan/forum/internal/domain/utils"
-	"github.com/jackc/pgx/v5/pgxpool"
 	"log"
 	"time"
+
+	"github.com/jackc/pgx/v5/pgxpool"
+
+	"github.com/VladimirMovsesyan/forum/internal/domain/model"
+	"github.com/VladimirMovsesyan/forum/internal/domain/utils"
 )
-
-type repository interface {
-	CreatePost(ctx context.Context, post model.Post) (*model.Post, error)
-	Post(ctx context.Context, id int) (*model.Post, error)
-	Posts(ctx context.Context) ([]*model.Post, error)
-
-	CreateComment(ctx context.Context, comment model.Comment) (*model.Comment, error)
-	Comments(ctx context.Context, postID int) ([]*model.Comment, error)
-}
-
-var _ repository = &postgresStorage{}
 
 const (
 	postsTable = `CREATE TABLE IF NOT EXISTS posts (
@@ -40,12 +31,12 @@ const (
 );`
 )
 
-type postgresStorage struct {
+type PostgresStorage struct {
 	conn *pgxpool.Pool
 }
 
-func NewPostgres(conn *pgxpool.Pool) (*postgresStorage, error) {
-	storage := &postgresStorage{
+func NewPostgres(conn *pgxpool.Pool) (*PostgresStorage, error) {
+	storage := &PostgresStorage{
 		conn: conn,
 	}
 
@@ -57,7 +48,7 @@ func NewPostgres(conn *pgxpool.Pool) (*postgresStorage, error) {
 	return storage, nil
 }
 
-func (p *postgresStorage) ensureTablesExists() error {
+func (p *PostgresStorage) ensureTablesExists() error {
 	_, err := p.conn.Exec(context.Background(), postsTable)
 	if err != nil {
 		return err
@@ -71,13 +62,13 @@ func (p *postgresStorage) ensureTablesExists() error {
 	return nil
 }
 
-func (p *postgresStorage) CreatePost(ctx context.Context, post model.Post) (*model.Post, error) {
+func (p *PostgresStorage) CreatePost(ctx context.Context, post *model.Post) (*model.Post, error) {
 	query := `INSERT INTO posts (title, content, author, allow_comments)
 				VALUES ($1, $2, $3, $4) RETURNING id, created_at;`
 
 	row := p.conn.QueryRow(ctx, query, post.Title, post.Content, post.Author, post.AllowComments)
 
-	var id int
+	var id int32
 
 	var createdAt time.Time
 
@@ -87,7 +78,7 @@ func (p *postgresStorage) CreatePost(ctx context.Context, post model.Post) (*mod
 	}
 
 	return &model.Post{
-		ID:            int32(id),
+		ID:            id,
 		Title:         post.Title,
 		Content:       post.Content,
 		Author:        post.Author,
@@ -97,7 +88,7 @@ func (p *postgresStorage) CreatePost(ctx context.Context, post model.Post) (*mod
 	}, nil
 }
 
-func (p *postgresStorage) Post(ctx context.Context, id int) (*model.Post, error) {
+func (p *PostgresStorage) Post(ctx context.Context, id int) (*model.Post, error) {
 	query := `SELECT * FROM posts WHERE id = $1;`
 
 	row := p.conn.QueryRow(ctx, query, id)
@@ -121,6 +112,7 @@ func (p *postgresStorage) Post(ctx context.Context, id int) (*model.Post, error)
 	commentMap := utils.BuildCommentTree(flatComments)
 
 	var rootComments []*model.Comment
+
 	for _, comment := range flatComments {
 		if comment.ParentID == nil {
 			rootComments = append(rootComments, commentMap[comment.ID])
@@ -132,8 +124,9 @@ func (p *postgresStorage) Post(ctx context.Context, id int) (*model.Post, error)
 	return post, nil
 }
 
-func (p *postgresStorage) Posts(ctx context.Context) ([]*model.Post, error) {
+func (p *PostgresStorage) Posts(ctx context.Context) ([]*model.Post, error) {
 	query := `SELECT * FROM posts;`
+
 	rows, err := p.conn.Query(ctx, query)
 	if err != nil {
 		return []*model.Post{}, err
@@ -145,6 +138,7 @@ func (p *postgresStorage) Posts(ctx context.Context) ([]*model.Post, error) {
 		var createdAt time.Time
 
 		post := &model.Post{}
+
 		err = rows.Scan(&post.ID, &post.Title, &post.Content, &post.Author, &post.AllowComments, &createdAt)
 		if err != nil {
 			log.Println(err)
@@ -152,7 +146,22 @@ func (p *postgresStorage) Posts(ctx context.Context) ([]*model.Post, error) {
 
 		post.CreatedAt = createdAt.String()
 
-		post.Comments, err = p.Comments(ctx, int(post.ID))
+		flatComments, err := p.Comments(ctx, int(post.ID))
+		if err != nil {
+			log.Println(err)
+		}
+
+		commentMap := utils.BuildCommentTree(flatComments)
+
+		var rootComments []*model.Comment
+
+		for _, comment := range flatComments {
+			if comment.ParentID == nil {
+				rootComments = append(rootComments, commentMap[comment.ID])
+			}
+		}
+
+		post.Comments = rootComments
 
 		posts = append(posts, post)
 	}
@@ -160,13 +169,13 @@ func (p *postgresStorage) Posts(ctx context.Context) ([]*model.Post, error) {
 	return posts, nil
 }
 
-func (p *postgresStorage) CreateComment(ctx context.Context, comment model.Comment) (*model.Comment, error) {
+func (p *PostgresStorage) CreateComment(ctx context.Context, comment *model.Comment) (*model.Comment, error) {
 	query := `INSERT INTO comments (post_id, parent_id, content, author)
 				VALUES ($1, $2, $3, $4)
 				RETURNING id, created_at;`
 	row := p.conn.QueryRow(ctx, query, comment.PostID, comment.ParentID, comment.Content, comment.Author)
 
-	var id int
+	var id int32
 
 	var createdAt time.Time
 
@@ -176,7 +185,7 @@ func (p *postgresStorage) CreateComment(ctx context.Context, comment model.Comme
 	}
 
 	return &model.Comment{
-		ID:        int32(id),
+		ID:        id,
 		PostID:    comment.PostID,
 		ParentID:  comment.ParentID,
 		Content:   comment.Content,
@@ -185,7 +194,7 @@ func (p *postgresStorage) CreateComment(ctx context.Context, comment model.Comme
 	}, nil
 }
 
-func (p *postgresStorage) Comments(ctx context.Context, postID int) ([]*model.Comment, error) {
+func (p *PostgresStorage) Comments(ctx context.Context, postID int) ([]*model.Comment, error) {
 	query := `WITH RECURSIVE comment_tree AS (
 				SELECT
 					id,
@@ -225,6 +234,7 @@ func (p *postgresStorage) Comments(ctx context.Context, postID int) ([]*model.Co
 		var createdAt time.Time
 
 		comment := &model.Comment{}
+
 		err = rows.Scan(&comment.ID, &comment.PostID, &comment.ParentID, &comment.Content, &comment.Author, &createdAt)
 		if err != nil {
 			log.Println(err)

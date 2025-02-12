@@ -4,7 +4,6 @@ import "github.com/VladimirMovsesyan/forum/internal/domain/model"
 
 func BuildCommentTree(flatComments []*model.Comment) map[int32]*model.Comment {
 	commentMap := make(map[int32]*model.Comment)
-	rootComments := []*model.Comment{}
 
 	for i := range flatComments {
 		comment := flatComments[i]
@@ -13,9 +12,7 @@ func BuildCommentTree(flatComments []*model.Comment) map[int32]*model.Comment {
 	}
 
 	for _, comment := range flatComments {
-		if comment.ParentID == nil {
-			rootComments = append(rootComments, commentMap[comment.ID])
-		} else {
+		if comment.ParentID != nil {
 			parent := commentMap[*comment.ParentID]
 			if parent != nil {
 				parent.Children = append(parent.Children, commentMap[comment.ID])

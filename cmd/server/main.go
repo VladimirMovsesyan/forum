@@ -1,9 +1,10 @@
 package main
 
 import (
-	"github.com/VladimirMovsesyan/forum/internal/application/process"
 	"log"
 	"os"
+
+	"github.com/VladimirMovsesyan/forum/internal/application/process"
 )
 
 const defaultPort = "8080"

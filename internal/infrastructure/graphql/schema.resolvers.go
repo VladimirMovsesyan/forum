@@ -7,12 +7,13 @@ package graphql
 import (
 	"context"
 	"fmt"
+
 	"github.com/VladimirMovsesyan/forum/internal/domain/model"
 )
 
 // CreatePost is the resolver for the createPost field.
 func (r *mutationResolver) CreatePost(ctx context.Context, input model.NewPost) (*model.Post, error) {
-	post, err := r.storage.CreatePost(ctx, model.Post{
+	post, err := r.storage.CreatePost(ctx, &model.Post{
 		Title:         input.Title,
 		Content:       input.Content,
 		Author:        input.Author,
@@ -40,7 +41,7 @@ func (r *mutationResolver) CreateComment(ctx context.Context, input model.NewCom
 		return nil, fmt.Errorf("creating comments under this post not allowed")
 	}
 
-	comment, err := r.storage.CreateComment(ctx, model.Comment{
+	comment, err := r.storage.CreateComment(ctx, &model.Comment{
 		PostID:   input.PostID,
 		ParentID: input.ParentID,
 		Content:  input.Content,

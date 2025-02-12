@@ -4,22 +4,24 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"github.com/99designs/gqlgen/graphql/handler"
-	"github.com/99designs/gqlgen/graphql/handler/extension"
-	"github.com/99designs/gqlgen/graphql/handler/lru"
-	"github.com/99designs/gqlgen/graphql/handler/transport"
-	"github.com/99designs/gqlgen/graphql/playground"
-	"github.com/VladimirMovsesyan/forum/internal/domain/pubsub"
-	"github.com/VladimirMovsesyan/forum/internal/infrastructure/graphql"
-	"github.com/VladimirMovsesyan/forum/internal/infrastructure/storage"
-	"github.com/jackc/pgx/v5/pgxpool"
-	"github.com/vektah/gqlparser/v2/ast"
 	"log"
 	"net/http"
 	"os"
 	"os/signal"
 	"syscall"
 	"time"
+
+	"github.com/99designs/gqlgen/graphql/handler"
+	"github.com/99designs/gqlgen/graphql/handler/extension"
+	"github.com/99designs/gqlgen/graphql/handler/lru"
+	"github.com/99designs/gqlgen/graphql/handler/transport"
+	"github.com/99designs/gqlgen/graphql/playground"
+	"github.com/jackc/pgx/v5/pgxpool"
+	"github.com/vektah/gqlparser/v2/ast"
+
+	"github.com/VladimirMovsesyan/forum/internal/domain/pubsub"
+	"github.com/VladimirMovsesyan/forum/internal/infrastructure/graphql"
+	"github.com/VladimirMovsesyan/forum/internal/infrastructure/storage"
 )
 
 type Process struct {
@@ -50,7 +52,8 @@ func (p *Process) Run() error {
 	resolver := graphql.NewResolver(s, ps)
 
 	srv := http.Server{
-		Addr: fmt.Sprintf(":%s", p.port),
+		Addr:              fmt.Sprintf(":%s", p.port),
+		ReadHeaderTimeout: time.Second * 15,
 	}
 
 	queryHandler := handler.New(graphql.NewExecutableSchema(graphql.Config{Resolvers: &resolver}))
@@ -75,13 +78,14 @@ func (p *Process) Run() error {
 	log.Printf("connect to http://localhost:%s/ for GraphQL playground\n", p.port)
 
 	signals := make(chan os.Signal, 1)
-	signal.Notify(signals, syscall.SIGINT, syscall.SIGTERM, syscall.SIGQUIT, syscall.SIGKILL)
+
+	signal.Notify(signals, syscall.SIGINT, syscall.SIGTERM, syscall.SIGQUIT)
 
 	go func() {
 		sig := <-signals
 		log.Println("Got signal:", sig)
-		err := srv.Shutdown(context.Background())
-		if err != nil {
+
+		if err := srv.Shutdown(context.Background()); err != nil {
 			log.Println(err)
 		}
 	}()

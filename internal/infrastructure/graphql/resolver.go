@@ -2,6 +2,7 @@ package graphql
 
 import (
 	"context"
+
 	"github.com/VladimirMovsesyan/forum/internal/domain/model"
 	"github.com/VladimirMovsesyan/forum/internal/domain/pubsub"
 )
@@ -11,11 +12,11 @@ import (
 // It serves as dependency injection for your app, add any dependencies you require here.
 
 type repository interface {
-	CreatePost(ctx context.Context, post model.Post) (*model.Post, error)
+	CreatePost(ctx context.Context, post *model.Post) (*model.Post, error)
 	Post(ctx context.Context, id int) (*model.Post, error)
 	Posts(ctx context.Context) ([]*model.Post, error)
 
-	CreateComment(ctx context.Context, comment model.Comment) (*model.Comment, error)
+	CreateComment(ctx context.Context, comment *model.Comment) (*model.Comment, error)
 	Comments(ctx context.Context, postID int) ([]*model.Comment, error)
 }
 

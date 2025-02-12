@@ -1,8 +1,9 @@
 package pubsub
 
 import (
-	"github.com/VladimirMovsesyan/forum/internal/domain/model"
 	"sync"
+
+	"github.com/VladimirMovsesyan/forum/internal/domain/model"
 )
 
 type PubSub struct {
@@ -16,33 +17,36 @@ func NewPubSub() *PubSub {
 	}
 }
 
-func (ps *PubSub) Subscribe(postId int32) chan *model.Comment {
+func (ps *PubSub) Subscribe(postID int32) chan *model.Comment {
 	ps.mu.Lock()
 	defer ps.mu.Unlock()
 
 	ch := make(chan *model.Comment, 1)
-	ps.subscribers[postId] = append(ps.subscribers[postId], ch)
+	ps.subscribers[postID] = append(ps.subscribers[postID], ch)
+
 	return ch
 }
 
-func (ps *PubSub) Publish(postId int32, comment *model.Comment) {
+func (ps *PubSub) Publish(postID int32, comment *model.Comment) {
 	ps.mu.Lock()
 	defer ps.mu.Unlock()
 
-	for _, ch := range ps.subscribers[postId] {
+	for _, ch := range ps.subscribers[postID] {
 		ch <- comment
 	}
 }
 
-func (ps *PubSub) Unsubscribe(postId int32, ch chan *model.Comment) {
+func (ps *PubSub) Unsubscribe(postID int32, ch chan *model.Comment) {
 	ps.mu.Lock()
 	defer ps.mu.Unlock()
 
-	subscribers := ps.subscribers[postId]
+	subscribers := ps.subscribers[postID]
 	for i, subscriber := range subscribers {
 		if subscriber == ch {
-			ps.subscribers[postId] = append(subscribers[:i], subscribers[i+1:]...)
+			ps.subscribers[postID] = append(subscribers[:i], subscribers[i+1:]...)
+
 			close(ch)
+
 			break
 		}
 	}
