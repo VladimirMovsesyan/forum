@@ -20,7 +20,7 @@ func (r *mutationResolver) CreatePost(ctx context.Context, input model.NewPost) 
 		AllowComments: input.AllowComments,
 	})
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("could not create post: %w", err)
 	}
 
 	return post, nil
@@ -34,7 +34,7 @@ func (r *mutationResolver) CreateComment(ctx context.Context, input model.NewCom
 
 	post, err := r.storage.Post(ctx, input.PostID)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("couldn't find post with id %d: %w", input.PostID, err)
 	}
 
 	if !post.AllowComments {
@@ -48,7 +48,7 @@ func (r *mutationResolver) CreateComment(ctx context.Context, input model.NewCom
 		Author:   input.Author,
 	})
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("couldn't create comment: %w", err)
 	}
 
 	r.ps.Publish(input.PostID, comment)
@@ -60,7 +60,7 @@ func (r *mutationResolver) CreateComment(ctx context.Context, input model.NewCom
 func (r *queryResolver) Posts(ctx context.Context) ([]*model.Post, error) {
 	posts, err := r.storage.Posts(ctx)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("coudn't get posts: %w", err)
 	}
 
 	return posts, nil
@@ -70,7 +70,7 @@ func (r *queryResolver) Posts(ctx context.Context) ([]*model.Post, error) {
 func (r *queryResolver) Post(ctx context.Context, id int32) (*model.Post, error) {
 	post, err := r.storage.Post(ctx, id)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("coudln't get post with id %d, got error: %w", id, err)
 	}
 
 	return post, nil
@@ -78,6 +78,11 @@ func (r *queryResolver) Post(ctx context.Context, id int32) (*model.Post, error)
 
 // NewComment is the resolver for the newComment field.
 func (r *subscriptionResolver) NewComment(ctx context.Context, postID int32) (<-chan *model.Comment, error) {
+	_, err := r.storage.Post(ctx, postID)
+	if err != nil {
+		return nil, fmt.Errorf("coudldn't subscribe for new comments at post %d: %w", postID, err)
+	}
+
 	ch := r.ps.Subscribe(postID)
 
 	go func() {

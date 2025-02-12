@@ -49,6 +49,7 @@ type repository interface {
 }
 
 func (p *Process) Run() error {
+	log.Println("Configuring service...")
 	var s repository
 
 	s = storage.NewInMemory()
@@ -107,6 +108,8 @@ func (p *Process) Run() error {
 			log.Println(err)
 		}
 	}()
+
+	log.Println("starting server on", p.port)
 
 	if err := srv.ListenAndServe(); !errors.Is(err, http.ErrServerClosed) {
 		return err
