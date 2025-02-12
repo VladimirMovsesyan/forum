@@ -17,7 +17,7 @@ func (r *mutationResolver) CreatePost(ctx context.Context, input model.NewPost) 
 		Title:         input.Title,
 		Content:       input.Content,
 		Author:        input.Author,
-		AllowComments: *input.AllowComments,
+		AllowComments: input.AllowComments,
 	})
 	if err != nil {
 		return nil, err

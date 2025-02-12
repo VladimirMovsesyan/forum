@@ -15,10 +15,9 @@ import (
 
 	"github.com/99designs/gqlgen/graphql"
 	"github.com/99designs/gqlgen/graphql/introspection"
+	"github.com/VladimirMovsesyan/forum/internal/domain/model"
 	gqlparser "github.com/vektah/gqlparser/v2"
 	"github.com/vektah/gqlparser/v2/ast"
-
-	"github.com/VladimirMovsesyan/forum/internal/domain/model"
 )
 
 // region    ************************** generated!.gotpl **************************
@@ -3908,7 +3907,7 @@ func (ec *executionContext) unmarshalInputNewPost(ctx context.Context, obj any) 
 			it.Author = data
 		case "allowComments":
 			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("allowComments"))
-			data, err := ec.unmarshalOBoolean2ᚖbool(ctx, v)
+			data, err := ec.unmarshalNBoolean2bool(ctx, v)
 			if err != nil {
 				return it, err
 			}

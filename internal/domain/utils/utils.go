@@ -5,8 +5,7 @@ import "github.com/VladimirMovsesyan/forum/internal/domain/model"
 func BuildCommentTree(flatComments []*model.Comment) map[int32]*model.Comment {
 	commentMap := make(map[int32]*model.Comment)
 
-	for i := range flatComments {
-		comment := flatComments[i]
+	for _, comment := range flatComments {
 		comment.Children = []*model.Comment{}
 		commentMap[comment.ID] = comment
 	}

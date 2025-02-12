@@ -27,7 +27,7 @@ input NewPost {
     title: String!
     content: String!
     author: String!
-    allowComments: Boolean
+    allowComments: Boolean!
 }
 
 input NewComment {

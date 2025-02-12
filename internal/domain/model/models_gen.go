@@ -26,7 +26,7 @@ type NewPost struct {
 	Title         string `json:"title"`
 	Content       string `json:"content"`
 	Author        string `json:"author"`
-	AllowComments *bool  `json:"allowComments,omitempty"`
+	AllowComments bool   `json:"allowComments"`
 }
 
 type Post struct {
