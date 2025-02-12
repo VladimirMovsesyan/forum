@@ -4,14 +4,16 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"github.com/VladimirMovsesyan/forum/internal/domain/model"
-	"github.com/jackc/pgx/v5/pgxpool"
 	"log"
 	"net/http"
 	"os"
 	"os/signal"
 	"syscall"
 	"time"
+
+	"github.com/jackc/pgx/v5/pgxpool"
+
+	"github.com/VladimirMovsesyan/forum/internal/domain/model"
 
 	"github.com/99designs/gqlgen/graphql/handler"
 	"github.com/99designs/gqlgen/graphql/handler/extension"
@@ -39,11 +41,11 @@ func New(port, dbDSN string) *Process {
 
 type repository interface {
 	CreatePost(ctx context.Context, post *model.Post) (*model.Post, error)
-	Post(ctx context.Context, id int) (*model.Post, error)
+	Post(ctx context.Context, id int32) (*model.Post, error)
 	Posts(ctx context.Context) ([]*model.Post, error)
 
 	CreateComment(ctx context.Context, comment *model.Comment) (*model.Comment, error)
-	Comments(ctx context.Context, postID int) ([]*model.Comment, error)
+	Comments(ctx context.Context, postID int32) ([]*model.Comment, error)
 }
 
 func (p *Process) Run() error {

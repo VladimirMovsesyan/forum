@@ -3,23 +3,13 @@ package storage
 import (
 	"context"
 	"fmt"
-	"github.com/VladimirMovsesyan/forum/internal/domain/model"
-	"github.com/VladimirMovsesyan/forum/internal/domain/utils"
 	"log"
 	"sort"
 	"time"
+
+	"github.com/VladimirMovsesyan/forum/internal/domain/model"
+	"github.com/VladimirMovsesyan/forum/internal/domain/utils"
 )
-
-type repository interface {
-	CreatePost(ctx context.Context, post *model.Post) (*model.Post, error)
-	Post(ctx context.Context, id int) (*model.Post, error)
-	Posts(ctx context.Context) ([]*model.Post, error)
-
-	CreateComment(ctx context.Context, comment *model.Comment) (*model.Comment, error)
-	Comments(ctx context.Context, postID int) ([]*model.Comment, error)
-}
-
-var _ repository = &InMemory{}
 
 type InMemory struct {
 	postIDs    int32
@@ -35,8 +25,9 @@ func NewInMemory() *InMemory {
 	}
 }
 
-func (mem *InMemory) CreatePost(ctx context.Context, post *model.Post) (*model.Post, error) {
-	mem.postIDs += 1
+func (mem *InMemory) CreatePost(_ context.Context, post *model.Post) (*model.Post, error) {
+	mem.postIDs++
+
 	mem.posts[mem.postIDs] = &model.Post{
 		ID:            mem.postIDs,
 		Title:         post.Title,
@@ -50,8 +41,8 @@ func (mem *InMemory) CreatePost(ctx context.Context, post *model.Post) (*model.P
 	return mem.posts[mem.postIDs], nil
 }
 
-func (mem *InMemory) Post(ctx context.Context, id int) (*model.Post, error) {
-	post, ok := mem.posts[int32(id)]
+func (mem *InMemory) Post(ctx context.Context, id int32) (*model.Post, error) {
+	post, ok := mem.posts[id]
 	if !ok {
 		return nil, fmt.Errorf("post not found with id %d", id)
 	}
@@ -82,7 +73,7 @@ func (mem *InMemory) Posts(ctx context.Context) ([]*model.Post, error) {
 	for _, post := range mem.posts {
 		newPost := post
 
-		flatComments, err := mem.Comments(ctx, int(newPost.ID))
+		flatComments, err := mem.Comments(ctx, newPost.ID)
 		if err != nil {
 			log.Println(err)
 		}
@@ -98,14 +89,16 @@ func (mem *InMemory) Posts(ctx context.Context) ([]*model.Post, error) {
 		}
 
 		newPost.Comments = rootComments
+
 		posts = append(posts, post)
 	}
 
 	return posts, nil
 }
 
-func (mem *InMemory) CreateComment(ctx context.Context, comment *model.Comment) (*model.Comment, error) {
-	mem.commentIDs += 1
+func (mem *InMemory) CreateComment(_ context.Context, comment *model.Comment) (*model.Comment, error) {
+	mem.commentIDs++
+
 	mem.comments[mem.commentIDs] = &model.Comment{
 		ID:        mem.commentIDs,
 		PostID:    comment.PostID,
@@ -118,11 +111,11 @@ func (mem *InMemory) CreateComment(ctx context.Context, comment *model.Comment) 
 	return mem.comments[mem.commentIDs], nil
 }
 
-func (mem *InMemory) Comments(ctx context.Context, postID int) ([]*model.Comment, error) {
+func (mem *InMemory) Comments(_ context.Context, postID int32) ([]*model.Comment, error) {
 	comments := make([]*model.Comment, 0)
 
 	for _, comment := range mem.comments {
-		if comment.PostID == int32(postID) {
+		if comment.PostID == postID {
 			comments = append(comments, comment)
 		}
 	}
@@ -130,9 +123,9 @@ func (mem *InMemory) Comments(ctx context.Context, postID int) ([]*model.Comment
 	sort.Slice(comments, func(i, j int) bool {
 		if comments[i].PostID == comments[j].PostID {
 			return comments[i].CreatedAt < comments[j].CreatedAt
-		} else {
-			return comments[i].PostID < comments[j].PostID
 		}
+
+		return comments[i].PostID < comments[j].PostID
 	})
 
 	return comments, nil

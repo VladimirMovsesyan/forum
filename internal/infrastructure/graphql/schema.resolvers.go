@@ -32,7 +32,7 @@ func (r *mutationResolver) CreateComment(ctx context.Context, input model.NewCom
 		return nil, fmt.Errorf("content exceeds max length of %d", maxCommentLength)
 	}
 
-	post, err := r.storage.Post(ctx, int(input.PostID))
+	post, err := r.storage.Post(ctx, input.PostID)
 	if err != nil {
 		return nil, err
 	}
@@ -68,7 +68,7 @@ func (r *queryResolver) Posts(ctx context.Context) ([]*model.Post, error) {
 
 // Post is the resolver for the post field.
 func (r *queryResolver) Post(ctx context.Context, id int32) (*model.Post, error) {
-	post, err := r.storage.Post(ctx, int(id))
+	post, err := r.storage.Post(ctx, id)
 	if err != nil {
 		return nil, err
 	}

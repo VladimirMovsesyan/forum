@@ -88,7 +88,7 @@ func (p *PostgresStorage) CreatePost(ctx context.Context, post *model.Post) (*mo
 	}, nil
 }
 
-func (p *PostgresStorage) Post(ctx context.Context, id int) (*model.Post, error) {
+func (p *PostgresStorage) Post(ctx context.Context, id int32) (*model.Post, error) {
 	query := `SELECT * FROM posts WHERE id = $1;`
 
 	row := p.conn.QueryRow(ctx, query, id)
@@ -146,7 +146,7 @@ func (p *PostgresStorage) Posts(ctx context.Context) ([]*model.Post, error) {
 
 		post.CreatedAt = createdAt.String()
 
-		flatComments, err := p.Comments(ctx, int(post.ID))
+		flatComments, err := p.Comments(ctx, post.ID)
 		if err != nil {
 			log.Println(err)
 		}
@@ -194,7 +194,7 @@ func (p *PostgresStorage) CreateComment(ctx context.Context, comment *model.Comm
 	}, nil
 }
 
-func (p *PostgresStorage) Comments(ctx context.Context, postID int) ([]*model.Comment, error) {
+func (p *PostgresStorage) Comments(ctx context.Context, postID int32) ([]*model.Comment, error) {
 	query := `WITH RECURSIVE comment_tree AS (
 				SELECT
 					id,
