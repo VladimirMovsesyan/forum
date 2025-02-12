@@ -3,6 +3,7 @@ package storage
 import (
 	"context"
 	"github.com/VladimirMovsesyan/forum/internal/domain/model"
+	"github.com/VladimirMovsesyan/forum/internal/domain/utils"
 	"github.com/jackc/pgx/v5/pgxpool"
 	"log"
 	"time"
@@ -112,7 +113,21 @@ func (p *postgresStorage) Post(ctx context.Context, id int) (*model.Post, error)
 
 	post.CreatedAt = createdAt.String()
 
-	post.Comments, err = p.Comments(ctx, id)
+	flatComments, err := p.Comments(ctx, id)
+	if err != nil {
+		return nil, err
+	}
+
+	commentMap := utils.BuildCommentTree(flatComments)
+
+	var rootComments []*model.Comment
+	for _, comment := range flatComments {
+		if comment.ParentID == nil {
+			rootComments = append(rootComments, commentMap[comment.ID])
+		}
+	}
+
+	post.Comments = rootComments
 
 	return post, nil
 }
@@ -171,7 +186,33 @@ func (p *postgresStorage) CreateComment(ctx context.Context, comment model.Comme
 }
 
 func (p *postgresStorage) Comments(ctx context.Context, postID int) ([]*model.Comment, error) {
-	query := `SELECT * FROM comments WHERE post_id = $1;`
+	query := `WITH RECURSIVE comment_tree AS (
+				SELECT
+					id,
+					post_id,
+					parent_id,
+					author,
+					content,
+					created_at,
+					id AS root_id
+				FROM comments
+				WHERE post_id = $1 AND parent_id IS NULL
+			
+				UNION ALL
+			
+				SELECT
+					c.id,
+					c.post_id,
+					c.parent_id,
+					c.author,
+					c.content,
+					c.created_at,
+					ct.root_id
+				FROM comments c
+				INNER JOIN comment_tree ct ON c.parent_id = ct.id
+			)
+			SELECT id, post_id, parent_id, author, content, created_at FROM comment_tree
+			ORDER BY root_id, created_at;`
 
 	rows, err := p.conn.Query(ctx, query, postID)
 	if err != nil {
